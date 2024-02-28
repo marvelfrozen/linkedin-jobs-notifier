@@ -1,10 +1,13 @@
-import discord, asyncio
-import scraper
-import os, sys, json
-import urllib.parse
+import asyncio
 import datetime
-from dotenv import load_dotenv
+import discord
 import json
+import os
+import sys
+import urllib.parse
+from dotenv import load_dotenv
+
+import scraper
 
 load_dotenv()
 BOT_TOKEN = os.getenv('BOT_TOKEN')
@@ -23,6 +26,7 @@ intents.message_content = True
 
 bot = discord.Client(intents=intents)
 
+
 @bot.event
 async def on_ready():
     print(f'Logged in as {bot.user} (ID: {bot.user.id})')
@@ -34,6 +38,7 @@ async def on_ready():
     COMPANIES_CHANNEL = bot.get_channel(COMPANIES_CHANNEL_ID)
 
     await get_new_roles_postings_task()
+
 
 @bot.event
 async def on_message(message):
@@ -84,6 +89,7 @@ async def on_message(message):
     elif message.content.splitlines()[0] == "!unblacklist":
         await remove_from_blacklist(message.content.splitlines()[1:])
 
+
 async def get_new_roles_postings_task():
     async def send_new_roles():
         async def send_companies_list(companies):
@@ -93,7 +99,11 @@ async def get_new_roles_postings_task():
             await COMPANIES_CHANNEL.send(companies_list_string)
 
         def get_levels_url(company):
-            base = "https://www.levels.fyi/internships/?track=Software%20Engineer&timeframe=2023%20%2F%202022&search="
+            base = "https://www.levels.fyi/internships/?track=Software%20Engineer&timeframe=2024%20%2F%202023&search="
+            return base + urllib.parse.quote_plus(company)
+
+        def get_glassdoor_url(company):
+            base = "https://www.glassdoor.com/Search/results.htm?keyword="
             return base + urllib.parse.quote_plus(company)
 
         def get_google_url(company):
@@ -105,11 +115,11 @@ async def get_new_roles_postings_task():
         blacklist = set(config["blacklist"])
 
         roles = scraper.get_recent_roles()
-        await DEBUG_CHANNEL.send("Number of non-sponsored roles:", len(roles))
+        #         await DEBUG_CHANNEL.send("Number of non-sponsored roles:", len(roles))
 
         companies = set()
         for role in roles:
-            company, title, link, picture = role
+            company, title, link, picture, level = role
 
             company_and_title = company + " - " + title
             if company_and_title in posted or company in blacklist:
@@ -119,12 +129,14 @@ async def get_new_roles_postings_task():
             config["posted"].append(company_and_title)
             posted.add(company_and_title)
 
-            embed = discord.Embed(title=title, url=link, color=discord.Color.from_str("#378CCF"), timestamp=datetime.datetime.now())
+            embed = discord.Embed(title=title, url=link, color=discord.Color.from_str("#378CCF"),
+                                  timestamp=datetime.datetime.now())
             embed.set_author(name=company, url=get_google_url(company))
-            embed.add_field(name="Levels.fyi Link", value=f"[{company} at Levels.fyi]({get_levels_url(company)})")
+            embed.add_field(name="Position", value=level, inline=False)
+            # embed.add_field(name="Glassdoor Link", value=f"[{company} at Glassdoor]({get_glassdoor_url(company)})", inline=False)
             embed.set_thumbnail(url=picture)
             await NEW_POSTINGS_CHANNEL.send(embed=embed)
-        
+
         if companies:
             await send_companies_list(companies)
             save_config(config)
@@ -141,15 +153,18 @@ async def get_new_roles_postings_task():
             print(e)
         await asyncio.sleep(60 * 20)
 
+
 def get_config():
     with open(os.path.join(sys.path[0], 'config.json')) as f:
         config = json.load(f)
         return config
+
 
 def save_config(config):
     with open(os.path.join(sys.path[0], 'config.json'), 'w') as f:
         f.seek(0)
         json.dump(config, f, indent=4)
         f.truncate()
+
 
 bot.run(BOT_TOKEN)
