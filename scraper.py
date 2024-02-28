@@ -15,7 +15,8 @@ SELENIUM_USER_DATA_DIR = os.getenv('SELENIUM_USER_DATA_DIR')
 def get_recent_roles():
     options = Options()
     options.add_argument(f"user-data-dir={SELENIUM_USER_DATA_DIR}")
-    driver = webdriver.Chrome(options=options, service=ChromeService(executable_path=ChromeDriverManager().install()))
+    options.add_argument('--headless=new')
+    driver = webdriver.Chrome(options=options, service=ChromeService(executable_path="./chromedriver"))
 
     # Open LinkedIn URL
     driver.get(LINKEDIN_URL)
