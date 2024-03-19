@@ -1,10 +1,11 @@
-import asyncio
 import datetime
-import discord
 import json
 import os
 import sys
 import urllib.parse
+
+import asyncio
+import discord
 from dotenv import load_dotenv
 
 import scraper
